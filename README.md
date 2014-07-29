@@ -2,6 +2,8 @@
 
 [![Violations](https://coviolations.io/projects/leukeleu/django-mptt-admin/badge/?)](http://coviolations.io/projects/leukeleu/django-mptt-admin/)
 
+[ ![Codeship Status for leukeleu/django-mptt-admin](https://www.codeship.io/projects/ed206f20-f959-0131-e8c4-3677fd0adc24/status)](https://www.codeship.io/projects/28861)
+
 Django Mptt Admin
 =================
 
