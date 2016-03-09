@@ -6,13 +6,25 @@ from django.template.response import TemplateResponse
 from django.contrib import admin
 from django.contrib.admin.options import csrf_protect_m
 from django.contrib.admin.views.main import ChangeList
-from django.contrib.admin.util import unquote, quote
 from django.conf.urls import url
+
+try:
+    # Django >= 1.7
+    from django.contrib.admin.utils import unquote, quote
+except ImportError:
+    from django.contrib.admin.util import unquote, quote
+
 
 from . import util
 
+try:
+    from django.contrib.admin.options import IS_POPUP_VAR
+except ImportError:
+    # Django 1.4 and 1.5
+    from django.contrib.admin.views.main import IS_POPUP_VAR
 
-class DjangoMpttAdmin(admin.ModelAdmin):
+
+class DjangoMpttAdminMixin(object):
     tree_auto_open = 1
     tree_load_on_demand = 1
     trigger_save_after_move = False
@@ -24,6 +36,10 @@ class DjangoMpttAdmin(admin.ModelAdmin):
 
     @csrf_protect_m
     def changelist_view(self, request, extra_context=None):
+        is_popup = IS_POPUP_VAR in request.GET
+        if is_popup:
+            return super(DjangoMpttAdminMixin, self).changelist_view(request, extra_context=extra_context)
+
         if not self.has_change_permission(request, None):
             raise PermissionDenied()
 
@@ -42,12 +58,12 @@ class DjangoMpttAdmin(admin.ModelAdmin):
             autoescape=util.get_javascript_value(self.autoescape)
         )
 
-        # Django 1.7
-        if hasattr(self.admin_site, 'each_context'):
-            context.update(self.admin_site.each_context())
+        django_version = util.get_short_django_version()
 
-        if extra_context:
-            context.update(extra_context)
+        if django_version == (1, 7):
+            context.update(self.admin_site.each_context())
+        elif django_version >= (1, 8):
+            context.update(self.admin_site.each_context(request))
 
         return TemplateResponse(
             request,
@@ -61,7 +77,7 @@ class DjangoMpttAdmin(admin.ModelAdmin):
                 return self.admin_site.admin_view(view)(*args, **kwargs)
             return update_wrapper(wrapper, view)
 
-        urlpatterns = super(DjangoMpttAdmin, self).get_urls()
+        urlpatterns = super(DjangoMpttAdminMixin, self).get_urls()
 
         def add_url(regex, url_name, view):
             # Prepend url to list so it has preference before 'change' url
@@ -98,6 +114,13 @@ class DjangoMpttAdmin(admin.ModelAdmin):
         position = request.POST['position']
         target_instance = self.get_object(request, target_id)
 
+        self.do_move(instance, position, target_instance)
+
+        return util.JsonResponse(
+            dict(success=True)
+        )
+
+    def do_move(self, instance, position, target_instance):
         if position == 'before':
             instance.move_to(target_instance, 'left')
         elif position == 'after':
@@ -109,10 +132,6 @@ class DjangoMpttAdmin(admin.ModelAdmin):
 
         if self.trigger_save_after_move:
             instance.save()
-
-        return util.JsonResponse(
-            dict(success=True)
-        )
 
     def get_change_list_for_tree(self, request):
         kwargs = dict(
@@ -134,7 +153,7 @@ class DjangoMpttAdmin(admin.ModelAdmin):
 
     def get_changelist(self, request, **kwargs):
         if util.get_short_django_version() >= (1, 5):
-            return super(DjangoMpttAdmin, self).get_changelist(request, **kwargs)
+            return super(DjangoMpttAdminMixin, self).get_changelist(request, **kwargs)
         else:
             return FixedChangeList
 
@@ -173,18 +192,29 @@ class DjangoMpttAdmin(admin.ModelAdmin):
         qs = util.get_tree_queryset(
             model=self.model,
             node_id=node_id,
-            selected_node_id=request.GET.get('selected_node'),
             max_level=max_level,
         )
+
+        qs = self.filter_tree_queryset(qs)
 
         tree_data = self.get_tree_data(qs, max_level)
         return util.JsonResponse(tree_data)
 
     def grid_view(self, request):
-        return super(DjangoMpttAdmin, self).changelist_view(
+        return super(DjangoMpttAdminMixin, self).changelist_view(
             request,
             dict(tree_url=self.get_admin_url('changelist'))
         )
+
+    def filter_tree_queryset(self, queryset):
+        """
+        Override 'filter_tree_queryset' to filter the queryset for the tree.
+        """
+        return queryset
+
+
+class DjangoMpttAdmin(DjangoMpttAdminMixin, admin.ModelAdmin):
+    pass
 
 
 class FixedChangeList(ChangeList):

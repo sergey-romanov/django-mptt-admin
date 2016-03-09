@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django_mptt_admin 0.1.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-08-13 00:37+0400\n"
-"PO-Revision-Date: 2014-08-13 00:41+0400\n"
+"POT-Creation-Date: 2016-03-09 22:09+0300\n"
+"PO-Revision-Date: 2016-03-09 22:10+0300\n"
 "Last-Translator: 1 <1>\n"
 "Language-Team: ru <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -18,7 +18,19 @@ msgstr ""
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Poedit 1.5.7\n"
 
-#: templates/django_mptt_admin/change_list.html:41
+#: templates/django_mptt_admin/change_list.html:38
+msgid "edit"
+msgstr "редактировать"
+
+#: templates/django_mptt_admin/change_list.html:39
+msgid "move failed"
+msgstr "ошибка перемещения"
+
+#: templates/django_mptt_admin/change_list.html:40
+msgid "Error while loading the data from the server"
+msgstr "Ошибка при загрузке данных с сервера"
+
+#: templates/django_mptt_admin/change_list.html:50
 msgid "Grid view"
 msgstr "Табличный вид"
 
